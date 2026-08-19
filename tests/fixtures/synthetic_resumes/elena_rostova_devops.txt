@@ -1,0 +1,28 @@
+ELENA ROSTOVA
+Staff DevOps & Cloud Infrastructure Engineer
+Denver, CO | elena.rostova.synthetic@example.com | (555) 018-9281
+
+EXECUTIVE SUMMARY
+Staff Platform & DevOps Engineer with 9+ years architecting multi-region Kubernetes clusters, automated GitOps deployment pipelines, and zero-trust cloud infrastructure across AWS and GCP.
+
+CORE TECHNICAL SKILLS
+- Cloud Platforms: AWS, GCP, Azure
+- Container & Orchestration: Kubernetes, Docker, Helm, ArgoCD, Envoy
+- Infrastructure as Code: Terraform, Terragrunt, Ansible, CloudFormation
+- Observability: Prometheus, Grafana, Datadog, OpenTelemetry, Loki
+
+PROFESSIONAL EXPERIENCE
+
+Staff Platform Engineer | Apex Cloud Dynamics | 2021 – Present
+- Architected multi-region active-active Kubernetes clusters across 3 AWS regions with 99.995% service availability SLA.
+- Automated GitOps deployment pipeline using ArgoCD and Terraform, reducing deployment cycle times from 4 hours to 8 minutes across 85 microservices.
+- Optimized cloud infrastructure spend, reducing monthly AWS compute and data transfer costs by $180,000 (32% savings) through spot instance orchestration.
+
+Senior Cloud Infrastructure Engineer | CloudScale Systems | 2017 – 2021
+- Spearheaded migration of on-premise datacenter workloads to AWS, migrating 120+ database instances and 40TB of data with zero data loss.
+- Engineered unified Prometheus and Grafana monitoring stack processing 2.5M metrics per minute, reducing Mean Time to Detect (MTTD) by 60%.
+
+EDUCATION & CERTIFICATIONS
+- B.S. in Information Systems, University of Colorado Boulder (2016)
+- AWS Certified Solutions Architect – Professional
+- Certified Kubernetes Administrator (CKA)

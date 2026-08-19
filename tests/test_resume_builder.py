@@ -24,6 +24,19 @@ class TestResumeBuilder(unittest.TestCase):
         self.assertGreaterEqual(audit.action_verb_score, 18)
         self.assertGreaterEqual(audit.metric_density_score, 18)
         self.assertGreaterEqual(audit.structure_score, 20)
+        self.assertTrue(len(audit.bullet_evaluations) > 0)
+        self.assertIn("status", audit.bullet_evaluations[0])
+
+    def test_fullstack_and_devops_latex_generation(self):
+        doc_fs = parse_resume_file(FIXTURES_DIR / "sam_patel_fullstack.md")
+        tex_fs = self.engine.generate_latex(doc_fs, role_template="fullstack")
+        self.assertIn("FULL STACK", tex_fs)
+        self.assertIn("Sam Patel", tex_fs)
+
+        doc_do = parse_resume_file(FIXTURES_DIR / "elena_rostova_devops.txt")
+        tex_do = self.engine.generate_latex(doc_do, role_template="devops")
+        self.assertIn("CLOUD INFRASTRUCTURE", tex_do)
+        self.assertIn("Elena Rostova", tex_do)
 
     def test_latex_resume_generation(self):
         doc = parse_resume_file(FIXTURES_DIR / "alex_rivera_backend.md")

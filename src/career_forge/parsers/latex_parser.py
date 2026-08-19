@@ -29,8 +29,8 @@ class LatexParser(BaseParser):
             raise ParserError(f"Failed to parse LaTeX file {path}: {e}") from e
 
     def parse_text(self, text: str) -> ParsedDocument:
-        # 1. Strip comments
-        lines = [line.split("%")[0] for line in text.splitlines()]
+        # 1. Strip comments (ignore escaped \%)
+        lines = [re.split(r"(?<!\\)%", line)[0] for line in text.splitlines()]
         code = "\n".join(lines)
 
         # 2. Extract sections
@@ -53,7 +53,7 @@ class LatexParser(BaseParser):
 
     def _clean_latex_syntax(self, raw: str) -> str:
         s = raw
-        # Remove documentclass, usepackage, begin/end document
+        # Remove documentclass, usepackage, geometry, begin/end document/itemize/center
         s = re.sub(r"\\documentclass.*?\{.*?\}", "", s)
         s = re.sub(r"\\usepackage.*?\{.*?\}", "", s)
         s = re.sub(r"\\geometry\{.*?\}", "", s)
@@ -66,11 +66,11 @@ class LatexParser(BaseParser):
         s = re.sub(r"\\hfill", " | ", s)
         s = re.sub(r"\\item\s+", "• ", s)
         s = re.sub(r"\\\\", "\n", s)
+        s = s.replace(r"\textbar", "|").replace(r"--", "–")
+        s = s.replace(r"\%", "%").replace(r"\&", "&").replace(r"\$", "$").replace(r"\_", "_").replace(r"\#", "#")
         s = re.sub(r"\\[a-zA-Z]+\*?", "", s)
-        # Clean escapes
-        s = s.replace(r"\&", "&").replace(r"\%", "%").replace(r"\$", "$").replace(r"\_", "_")
-        s = s.replace(r"\textbar", "|").replace(r"--", "–").replace(r"\\", "")
         # Clean extra braces, backslashes and whitespace
         s = re.sub(r"[{}]", "", s)
+        s = s.replace("\\", "")
         s = re.sub(r"\n{3,}", "\n\n", s)
         return s.strip()

@@ -78,6 +78,26 @@ class TestMCPServer(unittest.TestCase):
         payload = json.loads(content_text)
         self.assertTrue(payload["is_valid_syntax"])
 
+    def test_mcp_tool_call_convert(self):
+        tex_path = str(FIXTURES_DIR / "morgan_chen_aiml.tex")
+        req = {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "resume_architect_convert",
+                "arguments": {
+                    "input_path": tex_path,
+                    "target_format": "md"
+                }
+            }
+        }
+        res = process_jsonrpc_message(req)
+        self.assertEqual(res["id"], 5)
+        content_text = res["result"]["content"][0]["text"]
+        payload = json.loads(content_text)
+        self.assertIn("# Morgan Chen", payload["converted_text"])
+
 
 if __name__ == "__main__":
     unittest.main()

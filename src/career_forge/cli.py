@@ -2,6 +2,7 @@
 Interactive Command-Line Interface for CareerForge (`cforge`)
 """
 
+import re
 import sys
 import json
 import argparse
@@ -151,6 +152,21 @@ def cmd_resume_audit(args):
             console.print("[bold yellow]Recommendations for 90+ Score:[/bold yellow]")
             for rec in audit.recommendations:
                 console.print(f"  [yellow]• {rec}[/yellow]")
+
+        if getattr(args, "detailed", False) and audit.bullet_evaluations:
+            bullet_table = Table(title="🔍 Bullet-by-Bullet Google XYZ Inspection", show_header=True, header_style="bold cyan")
+            bullet_table.add_column("Bullet Text", style="white", max_width=45)
+            bullet_table.add_column("Status", justify="center")
+            bullet_table.add_column("Actionable Recommendation", style="dim yellow")
+            
+            for b in audit.bullet_evaluations:
+                status_str = "[green]✔ Optimal[/green]" if b["status"] == "Optimal" else "[yellow]⚠ Needs Metric[/yellow]"
+                bullet_table.add_row(
+                    b["bullet"],
+                    status_str,
+                    b["suggestion"]
+                )
+            console.print(bullet_table)
     else:
         print(f"ATS Score: {audit.total_score}/100")
         print(f"Verbs: {audit.action_verb_score}/25, Metrics: {audit.metric_density_score}/25, Structure: {audit.structure_score}/25, Brevity: {audit.brevity_score}/25")
@@ -191,7 +207,8 @@ def cmd_resume_build(args):
 
     out_dir = Path(args.output or resume_path.parent)
     out_dir.mkdir(parents=True, exist_ok=True)
-    tex_path = out_dir / f"{doc.clean_text.splitlines()[0].replace(' ', '_').strip('#')}_{args.role.upper()}_Resume.tex"
+    candidate_slug = re.sub(r'[\s_]+', '_', engine._extract_name(doc).strip().replace('#', ''))
+    tex_path = out_dir / f"{candidate_slug}_{args.role.upper()}_Resume.tex"
     tex_path.write_text(tex_code, encoding="utf-8")
 
     if HAS_RICH and console:
@@ -270,12 +287,13 @@ def main():
     # Resume Audit
     p_audit = resume_subs.add_parser("audit", help="100-point ATS Heuristic Scoring")
     p_audit.add_argument("--resume", "-r", required=True, help="Path to resume file")
+    p_audit.add_argument("--detailed", "-d", action="store_true", help="Print granular bullet-by-bullet Google XYZ inspection")
     p_audit.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # Resume Build
     p_build = resume_subs.add_parser("build", help="Build role-tailored LaTeX and compile to PDF")
     p_build.add_argument("--resume", "-r", required=True, help="Path to resume file")
-    p_build.add_argument("--role", default="swe", choices=["swe", "sdet", "aiml", "lead"], help="Role template archetype")
+    p_build.add_argument("--role", default="swe", choices=["swe", "sdet", "aiml", "lead", "fullstack", "devops", "platform", "data"], help="Role template archetype")
     p_build.add_argument("--compile", "-c", action="store_true", help="Compile .tex to .pdf via Tectonic/LaTeX")
     p_build.add_argument("--output", "-o", default=None, help="Output directory")
 

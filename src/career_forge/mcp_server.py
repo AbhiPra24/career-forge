@@ -54,11 +54,24 @@ TOOLS_SPEC = [
             "type": "object",
             "properties": {
                 "resume_path": {"type": "string", "description": "Path to source resume file"},
-                "role": {"type": "string", "enum": ["swe", "sdet", "aiml", "lead"], "description": "Role template archetype", "default": "swe"},
+                "role": {"type": "string", "enum": ["swe", "sdet", "aiml", "lead", "fullstack", "devops", "platform", "data"], "description": "Role template archetype", "default": "swe"},
                 "compile_pdf": {"type": "boolean", "description": "Whether to compile .tex to .pdf", "default": True},
                 "output_dir": {"type": "string", "description": "Output directory for generated files"}
             },
             "required": ["resume_path"]
+        }
+    },
+    {
+        "name": "resume_architect_convert",
+        "description": "Converts resume documents between LaTeX, Markdown, JSON, and Plain Text formats.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to source resume file"},
+                "target_format": {"type": "string", "enum": ["md", "txt", "json"], "description": "Target format", "default": "md"},
+                "output_path": {"type": "string", "description": "Optional output file path"}
+            },
+            "required": ["input_path"]
         }
     },
     {
@@ -113,6 +126,22 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         doc = parse_resume_file(resume_path)
         audit = ResumeArchitectEngine().audit_ats_score(doc)
         return audit.to_dict()
+
+    elif name == "resume_architect_convert":
+        input_path = Path(arguments["input_path"])
+        doc = parse_resume_file(input_path)
+        target_fmt = arguments.get("target_format", "md")
+        engine = ResumeArchitectEngine()
+        converted = engine.convert_format(doc, target_format=target_fmt)
+        out_path = arguments.get("output_path")
+        if out_path:
+            p = Path(out_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(converted, encoding="utf-8")
+        return {
+            "converted_text": converted,
+            "saved_to": str(out_path) if out_path else None
+        }
 
     elif name == "resume_architect_build":
         resume_path = Path(arguments["resume_path"])
