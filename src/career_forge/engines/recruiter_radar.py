@@ -61,17 +61,23 @@ class RecruiterRadarEngine:
         if cached_status is not None:
             return cached_status
 
-        orig_timeout = socket.getdefaulttimeout()
+        # 1. SSRF & Internal network host blocklist
+        BLOCKED_DOMAINS = {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "::1"}
+        if clean_domain in BLOCKED_DOMAINS or clean_domain.endswith((".local", ".internal", ".lan", ".corp")):
+            self.db.set_dns_status(clean_domain, is_valid=False, error_message="SSRF Guard: Internal domain resolution blocked")
+            return False
+
+        # 2. Thread-safe resolution without mutating global socket.setdefaulttimeout
+        import concurrent.futures
         try:
-            socket.setdefaulttimeout(self.config.dns_timeout)
-            socket.getaddrinfo(clean_domain, 80, proto=socket.IPPROTO_TCP)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(socket.getaddrinfo, clean_domain, 80, proto=socket.IPPROTO_TCP)
+                future.result(timeout=self.config.dns_timeout)
             self.db.set_dns_status(clean_domain, is_valid=True)
             return True
-        except (socket.gaierror, socket.timeout):
+        except Exception:
             self.db.set_dns_status(clean_domain, is_valid=False, error_message="DNS resolution timeout or failure")
             return False
-        finally:
-            socket.setdefaulttimeout(orig_timeout)
 
     def verify_email(self, email: str) -> DeliverabilityStatus:
         """Evaluates syntax, domain host resolution, and bounce likelihood."""

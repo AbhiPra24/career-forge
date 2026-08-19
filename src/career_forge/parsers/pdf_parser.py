@@ -17,6 +17,10 @@ class PdfParser(BaseParser):
         if not path.exists():
             raise ParserError(f"File not found: {path}")
 
+        MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB threshold
+        if path.stat().st_size > MAX_FILE_SIZE:
+            raise ParserError(f"Security: PDF file size ({path.stat().st_size} bytes) exceeds 25MB limit.")
+
         try:
             import pypdf
             reader = pypdf.PdfReader(str(path))

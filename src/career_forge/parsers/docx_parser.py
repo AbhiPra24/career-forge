@@ -24,10 +24,15 @@ class DocxParser(BaseParser):
         if not path.exists():
             raise ParserError(f"File not found: {path}")
 
+        MAX_XML_SIZE = 15 * 1024 * 1024  # 15 MB limit against zip bombs
+
         try:
             with zipfile.ZipFile(path, "r") as docx_zip:
                 if "word/document.xml" not in docx_zip.namelist():
                     raise ParserError("Invalid .docx file: word/document.xml missing.")
+                info = docx_zip.getinfo("word/document.xml")
+                if info.file_size > MAX_XML_SIZE:
+                    raise ParserError(f"Security: DOCX document XML exceeds maximum allowable size limit ({MAX_XML_SIZE // (1024*1024)}MB).")
                 xml_content = docx_zip.read("word/document.xml")
             
             return self._parse_xml(xml_content, str(path))

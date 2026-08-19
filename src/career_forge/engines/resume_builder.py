@@ -421,9 +421,17 @@ class ResumeArchitectEngine:
 
     def _escape_latex(self, text: str) -> str:
         s = text
+        # Neutralize dangerous LaTeX macro commands
+        dangerous_macros = [r"\input", r"\write18", r"\openout", r"\include", r"\catcode", r"\csname", r"\def", r"\let", r"\immediate"]
+        for dm in dangerous_macros:
+            s = s.replace(dm, f" [sanitized:{dm.lstrip(chr(92))}] ")
+
+        # Escape LaTeX control characters
         s = re.sub(r'(?<!\\)&', r'\&', s)
         s = re.sub(r'(?<!\\)%', r'\%', s)
         s = re.sub(r'(?<!\\)\$', r'\$', s)
         s = re.sub(r'(?<!\\)#', r'\#', s)
         s = re.sub(r'(?<!\\)_', r'\_', s)
+        s = re.sub(r'(?<!\\)\^', r'\textasciicircum{}', s)
+        s = re.sub(r'(?<!\\)~', r'\textasciitilde{}', s)
         return s

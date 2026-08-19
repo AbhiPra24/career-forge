@@ -72,9 +72,9 @@ class CompilerBridge:
             if engine == "tectonic":
                 cmd = ["tectonic", "--outdir", str(out_dir), str(tex_path)]
             elif engine == "xelatex":
-                cmd = ["xelatex", "-interaction=nonstopmode", f"-output-directory={out_dir}", str(tex_path)]
+                cmd = ["xelatex", "-no-shell-escape", "-interaction=nonstopmode", f"-output-directory={out_dir}", str(tex_path)]
             else:  # pdflatex
-                cmd = ["pdflatex", "-interaction=nonstopmode", f"-output-directory={out_dir}", str(tex_path)]
+                cmd = ["pdflatex", "-no-shell-escape", "-interaction=nonstopmode", f"-output-directory={out_dir}", str(tex_path)]
 
             proc = subprocess.run(
                 cmd,

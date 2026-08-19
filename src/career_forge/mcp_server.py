@@ -88,6 +88,16 @@ TOOLS_SPEC = [
 ]
 
 
+def _validate_safe_output_path(path_str: str) -> Path:
+    """Ensures target path does not escape into sensitive system directories."""
+    p = Path(path_str).expanduser().resolve()
+    sensitive_prefixes = [Path("/etc"), Path("/System"), Path("/usr"), Path("/bin"), Path("/sbin"), Path("/var/root"), Path.home() / ".ssh", Path.home() / ".aws"]
+    for s_pref in sensitive_prefixes:
+        if p == s_pref or s_pref in p.parents:
+            raise ValueError(f"Security: Output path {p} violates sandbox security constraints.")
+    return p
+
+
 def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """Dispatches tool call to corresponding CareerForge engine."""
     if name == "talent_scout_match":
@@ -134,13 +144,15 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         engine = ResumeArchitectEngine()
         converted = engine.convert_format(doc, target_format=target_fmt)
         out_path = arguments.get("output_path")
+        saved_location = None
         if out_path:
-            p = Path(out_path)
+            p = _validate_safe_output_path(out_path)
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(converted, encoding="utf-8")
+            saved_location = str(p)
         return {
             "converted_text": converted,
-            "saved_to": str(out_path) if out_path else None
+            "saved_to": saved_location
         }
 
     elif name == "resume_architect_build":
@@ -150,7 +162,8 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         engine = ResumeArchitectEngine()
         tex_code = engine.generate_latex(doc, role_template=role)
         
-        out_dir = Path(arguments.get("output_dir") or resume_path.parent)
+        target_dir = arguments.get("output_dir") or str(resume_path.parent)
+        out_dir = _validate_safe_output_path(target_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         tex_path = out_dir / f"{doc.clean_text.splitlines()[0].replace(' ', '_').strip('#')}_{role.upper()}_Resume.tex"
         tex_path.write_text(tex_code, encoding="utf-8")
