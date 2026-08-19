@@ -1,0 +1,6 @@
+# CareerForge Windsurf Rules
+
+- Source files live in `src/career_forge/`.
+- Test files live in `tests/` and must run cleanly with standard Python unittest or pytest.
+- When creating new parsers, inherit from `career_forge.parsers.base.BaseParser`.
+- When adding scoring heuristics, ensure weights in `career_forge.core.config.Config` remain normalized to 1.0.

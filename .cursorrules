@@ -1,0 +1,6 @@
+# CareerForge Cursor Rules
+
+- Always verify test suite health with `PYTHONPATH=src python3 -m unittest discover tests` before suggesting completions.
+- Maintain type annotations and clean dataclass schemas across `career_forge.parsers` and `career_forge.engines`.
+- Ensure all SQLite connections use `DatabaseManager.get_connection()` to prevent locking issues.
+- Preserve zero-PII guarantee: never add personal identifiable information to tests or templates.

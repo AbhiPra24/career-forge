@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=src python3 -m unittest discover tests)",
+      "Bash(python3 -m pytest tests/ -v)",
+      "Bash(ruff check src/ tests/)",
+      "Bash(ruff format src/ tests/)"
+    ]
+  }
+}
