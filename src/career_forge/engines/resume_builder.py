@@ -78,9 +78,22 @@ class ResumeArchitectEngine:
             verb_score = 5
 
         # 2. Metric Density & Google XYZ (25 pts)
-        metric_regex = re.compile(r"(\d+[\d,.]*\s*(?:%|rps|req/s|ms|x|k|m|million|billion|traders|regressions|endpoints)|\$\d+[\d,.]*|\d+\+\s*critical)", re.IGNORECASE)
-        bullets = [line.strip().lstrip("-•* ") for line in text.splitlines() if len(line.strip()) > 20 and (line.strip().startswith("-") or line.strip().startswith("•") or line.strip().startswith("*"))]
+        metric_regex = re.compile(
+            r"(\d+[\d,.]*\s*(?:%|rps|req/s|ms|x|k|m|million|billion|traders|regressions|endpoints|microservices?|services?|squads?|teams?|engineers?|users?|queries|daily|monthly|annually|days?|weeks?|months?|hours?|years?)|\$\d+[\d,.]*|\d+[\d,.]*\+|\d+\+\s*[\w]+|from\s+\d+[\w\s]+\s+to\s+\d+[\w\s]+)",
+            re.IGNORECASE
+        )
+        raw_bullets = [line.strip().lstrip("-•* ") for line in text.splitlines() if len(line.strip()) > 20 and (line.strip().startswith("-") or line.strip().startswith("•") or line.strip().startswith("*"))]
         
+        # Filter out categorical skill definitions (e.g. "Languages: Python, Java" or "CI/CD: GitHub Actions")
+        bullets = []
+        for b in raw_bullets:
+            if ":" in b[:35] and not any(b.lower().startswith(v) for v in STRONG_ACTION_VERBS):
+                continue
+            bullets.append(b)
+
+        if not bullets:
+            bullets = raw_bullets
+
         quantified = [b for b in bullets if metric_regex.search(b)]
         total_bullets = len(bullets) or 1
         quant_ratio = len(quantified) / total_bullets
