@@ -3,6 +3,7 @@ Interactive Command-Line Interface for CareerForge (`cforge`)
 """
 
 import sys
+import json
 import argparse
 from pathlib import Path
 from typing import Optional
@@ -44,18 +45,9 @@ def cmd_match(args):
         print(f"Error: Resume file not found at {resume_path}")
         sys.exit(1)
 
-    print_banner()
     doc = parse_resume_file(resume_path)
     digest_engine = ProfileDigestEngine()
     digest = digest_engine.extract_digest(doc)
-
-    if HAS_RICH and console:
-        console.print(f"[bold green]✔ Ingested & Digested:[/bold green] [bold]{digest.candidate_name}[/bold] ({digest.career_stage})")
-        console.print(f"[cyan]Core Stack:[/cyan] {', '.join(digest.core_stack)}")
-        if digest.top_metrics:
-            console.print(f"[cyan]Top Metric:[/cyan] {digest.top_metrics[0]}")
-    else:
-        print(f"Ingested: {digest.candidate_name} ({digest.career_stage})")
 
     discovery = DiscoveryEngine()
     matcher = TalentScoutEngine()
@@ -63,6 +55,36 @@ def cmd_match(args):
 
     evaluations = [(job, matcher.evaluate_fit(digest, job)) for job in jobs]
     evaluations.sort(key=lambda x: x[1].fit_score, reverse=True)
+
+    if getattr(args, "json", False):
+        payload = {
+            "candidate_digest": digest.to_dict(),
+            "requisitions": [
+                {
+                    "company": job.company,
+                    "title": job.title,
+                    "tier": job.tier,
+                    "location": job.location,
+                    "salary_range": job.salary_range,
+                    "fit_score": ev.fit_score,
+                    "action_batch": ev.action_batch,
+                    "matched_skills": ev.matched_skills,
+                    "missing_skills": ev.missing_skills
+                }
+                for job, ev in evaluations
+            ]
+        }
+        print(json.dumps(payload, indent=2))
+        return
+
+    print_banner()
+    if HAS_RICH and console:
+        console.print(f"[bold green]✔ Ingested & Digested:[/bold green] [bold]{digest.candidate_name}[/bold] ({digest.career_stage})")
+        console.print(f"[cyan]Core Stack:[/cyan] {', '.join(digest.core_stack)}")
+        if digest.top_metrics:
+            console.print(f"[cyan]Top Metric:[/cyan] {digest.top_metrics[0]}")
+    else:
+        print(f"Ingested: {digest.candidate_name} ({digest.career_stage})")
 
     if HAS_RICH and console:
         table = Table(title="🎯 Live Requisitions & 4-Factor Fit Scores", show_header=True, header_style="bold magenta")
@@ -105,11 +127,15 @@ def cmd_resume_audit(args):
         print(f"Error: Resume file not found at {resume_path}")
         sys.exit(1)
 
-    print_banner()
     doc = parse_resume_file(resume_path)
     engine = ResumeArchitectEngine()
     audit = engine.audit_ats_score(doc)
 
+    if getattr(args, "json", False):
+        print(json.dumps(audit.to_dict(), indent=2))
+        return
+
+    print_banner()
     if HAS_RICH and console:
         score_color = "green" if audit.total_score >= 80 else ("yellow" if audit.total_score >= 65 else "red")
         console.print(Panel(
@@ -128,6 +154,28 @@ def cmd_resume_audit(args):
     else:
         print(f"ATS Score: {audit.total_score}/100")
         print(f"Verbs: {audit.action_verb_score}/25, Metrics: {audit.metric_density_score}/25, Structure: {audit.structure_score}/25, Brevity: {audit.brevity_score}/25")
+
+
+def cmd_resume_convert(args):
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"Error: Input file not found at {input_path}")
+        sys.exit(1)
+
+    doc = parse_resume_file(input_path)
+    engine = ResumeArchitectEngine()
+    converted_text = engine.convert_format(doc, target_format=args.to)
+
+    if args.output:
+        out_file = Path(args.output)
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        out_file.write_text(converted_text, encoding="utf-8")
+        if HAS_RICH and console:
+            console.print(f"[bold green]✔ Converted document saved to:[/bold green] [underline]{out_file}[/underline]")
+        else:
+            print(f"Converted document saved to: {out_file}")
+    else:
+        print(converted_text)
 
 
 def cmd_resume_build(args):
@@ -169,8 +217,12 @@ def cmd_resume_build(args):
 def cmd_verify_email(args):
     radar = RecruiterRadarEngine()
     status = radar.verify_email(args.email)
-    print_banner()
 
+    if getattr(args, "json", False):
+        print(json.dumps(status.to_dict(), indent=2))
+        return
+
+    print_banner()
     if HAS_RICH and console:
         badge_style = "green" if "HIGH" in status.confidence else ("yellow" if "CAUTION" in status.confidence else "red")
         console.print(Panel(
@@ -209,6 +261,7 @@ def main():
     p_match.add_argument("--location", "-l", default="Remote", help="Location filter")
     p_match.add_argument("--limit", type=int, default=10, help="Maximum requisitions to evaluate")
     p_match.add_argument("--report", action="store_true", help="Generate strategy markdown report")
+    p_match.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # Resume subparser
     p_resume = subparsers.add_parser("resume", help="ATS scoring, LaTeX generation, and conversion")
@@ -217,6 +270,7 @@ def main():
     # Resume Audit
     p_audit = resume_subs.add_parser("audit", help="100-point ATS Heuristic Scoring")
     p_audit.add_argument("--resume", "-r", required=True, help="Path to resume file")
+    p_audit.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # Resume Build
     p_build = resume_subs.add_parser("build", help="Build role-tailored LaTeX and compile to PDF")
@@ -225,9 +279,16 @@ def main():
     p_build.add_argument("--compile", "-c", action="store_true", help="Compile .tex to .pdf via Tectonic/LaTeX")
     p_build.add_argument("--output", "-o", default=None, help="Output directory")
 
+    # Resume Convert
+    p_convert = resume_subs.add_parser("convert", help="Convert resume between formats (md, txt, json)")
+    p_convert.add_argument("--input", "-i", required=True, help="Path to source document")
+    p_convert.add_argument("--to", "-t", default="md", choices=["md", "txt", "json"], help="Target format")
+    p_convert.add_argument("--output", "-o", default=None, help="Optional output file path")
+
     # Verify Email
     p_email = subparsers.add_parser("verify-email", help="Verify recruiter email deliverability & MX health")
     p_email.add_argument("email", help="Recruiter email address to verify")
+    p_email.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # MCP Serve
     subparsers.add_parser("mcp-serve", help="Run as Model Context Protocol (MCP) server over stdio")
@@ -240,6 +301,8 @@ def main():
             cmd_resume_audit(args)
         elif args.resume_command == "build":
             cmd_resume_build(args)
+        elif args.resume_command == "convert":
+            cmd_resume_convert(args)
         else:
             p_resume.print_help()
     elif args.command == "verify-email":

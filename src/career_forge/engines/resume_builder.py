@@ -94,11 +94,16 @@ class ResumeArchitectEngine:
             metric_score = 8
 
         # 3. Structure & Sections (25 pts)
-        required_sections = ["experience", "education", "skill", "summary"]
+        section_aliases = {
+            "Experience": ["experience", "employment", "work history", "career history", "projects"],
+            "Education": ["education", "academic", "university", "degree", "certifications"],
+            "Skills": ["skills", "skill", "technologies", "tech stack", "competencies", "tools"],
+            "Summary": ["summary", "profile", "objective", "about", "overview", "executive summary"]
+        }
         missing_secs = []
-        for sec in required_sections:
-            if not re.search(r"\b" + re.escape(sec) + r"\b", text_lower):
-                missing_secs.append(sec.title())
+        for canonical_name, aliases in section_aliases.items():
+            if not any(re.search(r"\b" + re.escape(alias) + r"\b", text_lower) for alias in aliases):
+                missing_secs.append(canonical_name)
 
         structure_score = max(5, 25 - (len(missing_secs) * 5))
 
