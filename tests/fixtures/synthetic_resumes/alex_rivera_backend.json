@@ -1,0 +1,30 @@
+{
+  "name": "Alex Rivera",
+  "title": "Senior Distributed Systems Engineer",
+  "email": "alex.rivera.synthetic@example.com",
+  "location": "San Francisco, CA",
+  "summary": "Distributed systems engineer specializing in high-throughput event streaming, cloud infrastructure, and low-latency microservices.",
+  "skills": {
+    "languages": ["Go", "Rust", "Python", "SQL"],
+    "infrastructure": ["Kubernetes", "Kafka", "gRPC", "Redis", "PostgreSQL", "AWS", "Terraform"]
+  },
+  "experience": [
+    {
+      "company": "Nexus Cloud Systems",
+      "role": "Principal Infrastructure Engineer",
+      "period": "2022 – Present",
+      "bullets": [
+        "Architected distributed streaming pipeline using Go and Apache Kafka processing 45,000 requests per second with sub-15ms P99 latency.",
+        "Optimized PostgreSQL connection pooling and indexing, reducing database lock contention by 35% and saving $120,000 annually.",
+        "Spearheaded migration of 80+ microservices to Kubernetes with custom Envoy service mesh."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "B.S. in Computer Science",
+      "school": "University of California, Berkeley",
+      "year": "2019"
+    }
+  ]
+}

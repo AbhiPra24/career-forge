@@ -1,0 +1,26 @@
+JORDAN TAYLOR
+Lead SDET & QA Automation Architect
+Seattle, WA | jordan.taylor.synthetic@example.com | (555) 019-2834
+
+PROFESSIONAL SUMMARY
+Lead Software Development Engineer in Test (SDET) with 8+ years building enterprise test automation frameworks, distributed performance testing pipelines, and CI/CD quality gates across cloud-native platforms.
+
+TECHNICAL SKILLS
+- Automation & Frameworks: Playwright, Cypress, Selenium WebDriver, PyTest, TestNG, RestAssured
+- Languages: Python, Java, TypeScript, Bash, SQL
+- Performance & Security: k6, JMeter, Locust, OWASP ZAP
+- CI/CD & DevOps: GitHub Actions, Jenkins, Docker, Kubernetes, ArgoCD
+
+EXPERIENCE
+
+Lead QA Architect | Apex Fintech Solutions | 2021 – Present
+- Architected unified end-to-end testing platform using Python and Playwright, increasing test execution velocity by 70% while reducing flake rate to under 0.5%.
+- Implemented automated performance regression suite with k6 simulating 20,000 concurrent traders across checkout workflows.
+- Established mandatory automated quality gates in GitHub Actions, preventing 140+ critical production regressions over 2 years.
+
+Senior SDET | CloudScale Systems | 2017 – 2021
+- Developed API test automation harness covering 350+ microservice endpoints using PyTest and Docker.
+- Reduced overall release cycle duration from 2 weeks to 2 days through parallelized CI/CD test pipelines.
+
+EDUCATION
+B.S. in Software Engineering, University of Washington, 2017
