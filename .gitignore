@@ -7,6 +7,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+dist_test/
 downloads/
 eggs/
 .eggs/
@@ -46,11 +47,14 @@ jobs_cache.db*
 *.pem
 *.key
 
-# IDEs
+# IDEs & System
 .idea/
 .vscode/
 *.swp
 *.swo
+.DS_Store
+**/.DS_Store
+Thumbs.db
 
 # LaTeX build artifacts
 *.aux
@@ -66,5 +70,6 @@ jobs_cache.db*
 # Compiled PDFs & exports in user folders
 output/
 dist_resumes/
+dist_test/
 *.pdf
 !tests/fixtures/**/*.pdf
