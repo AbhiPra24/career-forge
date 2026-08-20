@@ -237,9 +237,9 @@ class ResumeArchitectEngine:
             return doc.metadata["name"]
         lines = [line.strip().replace("#", "").replace("\\", "").strip() for line in doc.clean_text.splitlines() if line.strip()]
         if not lines:
-            return "Alex Rivera"
+            return "Candidate Name"
         name = lines[0].strip()
-        if name.isupper():
+        if name.isupper() or name.islower():
             name = name.title()
         return name
 
@@ -261,11 +261,20 @@ class ResumeArchitectEngine:
         return match.group(0) if match else "candidate@example.com"
 
     def _extract_location(self, doc: ParsedDocument) -> str:
-        for line in doc.clean_text.splitlines():
-            match = re.search(r"\b([A-Z][a-zA-Z\s]{1,25}?,\s*[A-Z]{2})\b", line)
-            if match and not any(kw in line.lower() for kw in ["university", "college", "experience", "technologies"]):
+        # Check header section first
+        header_text = doc.sections.get("Header", "") if doc.sections else ""
+        search_corpus = header_text + "\n" + doc.clean_text
+
+        for line in search_corpus.splitlines()[:15]:
+            # Clean font-awesome / PDF icon artifacts
+            cleaned_line = re.sub(r"[♂♀¶\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", line)
+            cleaned_line = re.sub(r"(?:map[- ]?marker[- ]?alt|marker[- ]?alt|ap[- ]?arker[- ]?alt|alt)\b", "", cleaned_line, flags=re.IGNORECASE).strip()
+
+            # Pattern: City, State or City, Country (e.g. Noida, India | San Francisco, CA)
+            match = re.search(r"\b([A-Z][a-zA-Z\s]{1,25}?,\s*(?:[A-Z]{2}|India|USA|UK|United States|Germany|Canada|Singapore|Australia))\b", cleaned_line, re.IGNORECASE)
+            if match and not any(kw in cleaned_line.lower() for kw in ["university", "college", "experience", "technologies", "school"]):
                 return match.group(1).strip()
-        return "United States"
+        return "Open to Hybrid / Remote"
 
     def _extract_linkedin(self, doc: ParsedDocument) -> str:
         match = re.search(r"((?:linkedin\.com/in|github\.com)/[\w.-]+)", doc.clean_text)
@@ -275,11 +284,12 @@ class ResumeArchitectEngine:
         if doc.sections:
             for k, v in doc.sections.items():
                 if any(w in k.lower() for w in ["summary", "objective", "specialization", "overview", "profile"]):
-                    return self._escape_latex(v.strip())
+                    cleaned = " ".join([l.strip() for l in v.splitlines() if l.strip()])
+                    return self._escape_latex(cleaned)
         lines = doc.clean_text.splitlines()
         for i, line in enumerate(lines):
             if "summary" in line.lower() or "objective" in line.lower():
-                body = [l.strip() for l in lines[i+1:i+5] if l.strip() and not l.strip().startswith("#")]
+                body = [l.strip() for l in lines[i+1:i+6] if l.strip() and not l.strip().startswith("#")]
                 if body:
                     return self._escape_latex(" ".join(body))
         return "Experienced technical professional with a proven track record of architecting scalable systems and delivering high-impact business outcomes."
@@ -287,8 +297,8 @@ class ResumeArchitectEngine:
     def _extract_skills_latex(self, doc: ParsedDocument) -> str:
         if doc.sections:
             for k, v in doc.sections.items():
-                if any(w in k.lower() for w in ["skill", "stack", "technologies", "frameworks"]):
-                    lines = [line.strip().lstrip("-•* ") for line in v.splitlines() if line.strip()]
+                if any(w in k.lower() for w in ["skill", "stack", "technologies", "frameworks", "competencies"]):
+                    lines = [line.strip().lstrip("-•*▸– ") for line in v.splitlines() if line.strip()]
                     formatted = []
                     for line in lines:
                         if ":" in line:
@@ -296,14 +306,14 @@ class ResumeArchitectEngine:
                             category_clean = category.strip().replace("*", "").replace("#", "")
                             items_clean = items.strip().replace("*", "").replace("#", "")
                             formatted.append(rf"\textbf{{{self._escape_latex(category_clean)}:}} {self._escape_latex(items_clean)} \\")
-                        else:
+                        elif len(line) > 3:
                             formatted.append(rf"{self._escape_latex(line)} \\")
                     if formatted:
                         return "\n".join(formatted).rstrip(r" \\")
         return (
-            r"\textbf{Core Languages:} Go, Python, Rust, SQL, TypeScript \\" + "\n" +
-            r"\textbf{Infrastructure \& Cloud:} Kubernetes, Kafka, AWS, Docker, gRPC, PostgreSQL \\" + "\n" +
-            r"\textbf{Engineering Practices:} CI/CD, Microservices, Distributed Systems, TDD"
+            r"\textbf{Core Languages:} Python, SQL, Bash \\" + "\n" +
+            r"\textbf{Frameworks \& Tools:} pytest, Selenium, Postman, Allure, REST APIs \\" + "\n" +
+            r"\textbf{CI/CD \& Protocols:} Jenkins, Docker, Git, Linux, OCPP"
         )
 
     def _extract_experience_latex(self, doc: ParsedDocument) -> str:
@@ -319,7 +329,7 @@ class ResumeArchitectEngine:
                 return exp_block.strip()
 
         # 2. If parsed from Markdown
-        exp_match = re.search(r"##\s+(?i:experience|professional experience|work history)([\s\S]*?)(?=\n##|\Z)", raw)
+        exp_match = re.search(r"##\s+(?i:experience|professional experience|work history)([\s\S]*?)(?=\n##\s+[A-Za-z]|\Z)", raw)
         if exp_match:
             exp_content = exp_match.group(1).strip()
             job_blocks = re.split(r"(?=###\s+)", exp_content)
@@ -330,7 +340,7 @@ class ResumeArchitectEngine:
                 lines = [l.strip() for l in block.strip().splitlines() if l.strip()]
                 header_line = lines[0].lstrip("#").strip()
                 role = "Senior Engineer"
-                company = "Nexus Cloud Systems"
+                company = "Company"
                 if "|" in header_line:
                     parts = [p.strip() for p in header_line.split("|")]
                     role = parts[0]
@@ -339,35 +349,36 @@ class ResumeArchitectEngine:
                     role = header_line
 
                 dates = "2022 -- Present"
-                location = "San Francisco, CA"
+                location = ""
                 bullet_start = 1
                 if len(lines) > 1 and lines[1].startswith("*") and lines[1].endswith("*"):
                     date_loc = lines[1].strip("*").strip()
                     if "|" in date_loc:
                         parts = [p.strip() for p in date_loc.split("|")]
-                        dates = parts[0].replace("–", "--").replace("-", "--")
+                        dates = parts[0].replace("–", "--").replace("—", "--").replace("-", "--")
                         location = parts[1]
                     else:
-                        dates = date_loc.replace("–", "--").replace("-", "--")
+                        dates = date_loc.replace("–", "--").replace("—", "--").replace("-", "--")
                     bullet_start = 2
 
                 bullets = []
                 for bline in lines[bullet_start:]:
-                    if bline.startswith("-") or bline.startswith("•") or bline.startswith("*"):
-                        item_text = bline.lstrip("-•* ").strip()
+                    if bline.startswith("-") or bline.startswith("•") or bline.startswith("*") or bline.startswith("▸") or bline.startswith("–"):
+                        item_text = bline.lstrip("-•*▸– ").strip()
                         bullets.append(rf"\item {self._escape_latex(item_text)}")
 
                 if bullets:
+                    loc_str = rf"\hfill {self._escape_latex(location)}" if location else ""
                     formatted_jobs.append(rf"""
 \textbf{{{self._escape_latex(role)}}} \hfill {self._escape_latex(dates)} \\
-\textit{{{self._escape_latex(company)}}} \hfill {self._escape_latex(location)}
+\textit{{{self._escape_latex(company)}}} {loc_str}
 \begin{{itemize}}
 """ + "\n".join(bullets) + "\n\\end{itemize}")
 
             if formatted_jobs:
                 return "\n\n".join(formatted_jobs)
 
-        # 3. Fallback from clean_text
+        # 3. Dynamic Parser for Structured/Freeform Experience
         exp_text = ""
         if doc.sections:
             for k, v in doc.sections.items():
@@ -378,9 +389,84 @@ class ResumeArchitectEngine:
         if not exp_text:
             exp_text = doc.clean_text
 
+        date_regex = re.compile(
+            r"((?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+)?\d{4}\s*(?:–|—|-|to)\s*(?:Present|Current|(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+)?\d{4}))",
+            re.IGNORECASE
+        )
+
+        lines = [l.strip() for l in exp_text.splitlines() if l.strip()]
+        jobs: List[Dict[str, Any]] = []
+        current_job: Optional[Dict[str, Any]] = None
+
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            is_bullet = bool(re.match(r"^[–—•*▸\-]\s*", line))
+            cleaned_line = re.sub(r"^[–—•*▸\-]\s*", "", line).strip()
+
+            date_match = date_regex.search(line)
+            if date_match and not is_bullet:
+                dates = date_match.group(1).replace("–", "--").replace("—", "--").replace("-", "--")
+                role = line[:date_match.start()].strip(" |–—·-")
+                if not role:
+                    role = "Software Engineer"
+                company = ""
+                location = ""
+
+                # Look ahead for company and location lines
+                if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
+                    next_l = lines[i+1].strip()
+                    i += 1
+                    if "·" in next_l or "|" in next_l:
+                        parts = re.split(r"[·|]", next_l)
+                        company = parts[0].strip()
+                        location = " · ".join([p.strip() for p in parts[1:]])
+                    else:
+                        company = next_l
+                        if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
+                            loc_candidate = lines[i+1].strip()
+                            if any(kw in loc_candidate.lower() for kw in ["remote", "hybrid", "on-site", "india", "ca", "ny", "tx", "wa", "uk", "usa", "germany"]):
+                                location = loc_candidate
+                                i += 1
+
+                if current_job:
+                    jobs.append(current_job)
+                current_job = {
+                    "role": role,
+                    "company": company or "Technology Company",
+                    "dates": dates,
+                    "location": location,
+                    "bullets": []
+                }
+            elif current_job is not None:
+                if is_bullet or len(line) > 20:
+                    current_job["bullets"].append(cleaned_line)
+            i += 1
+
+        if current_job:
+            jobs.append(current_job)
+
+        if jobs:
+            formatted = []
+            for j in jobs:
+                bullets_list = [rf"\item {self._escape_latex(b)}" for b in j["bullets"] if len(b) > 10]
+                if not bullets_list:
+                    bullets_list = [r"\item Led test strategy, automated verification, and production release sign-offs."]
+                b_str = "\n".join(bullets_list)
+                loc_str = rf"\hfill {self._escape_latex(j['location'])}" if j['location'] else ""
+                formatted.append(
+                    rf"\textbf{{{self._escape_latex(j['role'])}}} \hfill {self._escape_latex(j['dates'])} \\" + "\n" +
+                    rf"\textit{{{self._escape_latex(j['company'])}}} {loc_str}" + "\n" +
+                    r"\begin{itemize}" + "\n" +
+                    b_str + "\n" +
+                    r"\end{itemize}"
+                )
+            return "\n\n".join(formatted)
+
+        # Fallback to general bullet extraction
         bullets = []
         for line in exp_text.splitlines():
-            line_str = line.strip().lstrip("-•* ")
+            line_str = line.strip().lstrip("-•*▸– ")
             if len(line_str) > 20 and any(char.isdigit() for char in line_str):
                 bullets.append(rf"\item {self._escape_latex(line_str)}")
             if len(bullets) >= 4:
@@ -388,14 +474,14 @@ class ResumeArchitectEngine:
 
         if not bullets:
             bullets = [
-                r"\item Architected high-throughput microservices reducing latency by 35\%.",
-                r"\item Led distributed team of 6 engineers across core infrastructure migrations."
+                r"\item Architected high-throughput services delivering sub-15ms latency.",
+                r"\item Led distributed engineering initiatives across continuous deployment pipelines."
             ]
 
         bullets_str = "\n".join(bullets)
         return rf"""
-\textbf{{Principal Systems Engineer}} \hfill 2021 -- Present \\
-\textit{{Nexus Cloud Systems}} \hfill San Francisco, CA
+\textbf{{Senior Engineer}} \hfill 2022 -- Present \\
+\textit{{Engineering Organization}} \hfill
 \begin{{itemize}}
 {bullets_str}
 \end{{itemize}}
@@ -407,17 +493,50 @@ class ResumeArchitectEngine:
                 if any(w in k.lower() for w in ["education", "academic"]):
                     lines = [l.strip().replace("*", "").replace("#", "") for l in v.splitlines() if l.strip()]
                     if lines:
-                        first_line = lines[0]
-                        if "|" in first_line:
-                            parts = [p.strip() for p in first_line.split("|")]
-                            degree = parts[0]
-                            school_or_dates = parts[1]
-                            other = lines[1] if len(lines) > 1 else ""
-                            return rf"\textbf{{{self._escape_latex(degree)}}} \hfill {self._escape_latex(school_or_dates)}" + (rf" \\ {self._escape_latex(other)}" if other else "")
-                        else:
-                            other = lines[1] if len(lines) > 1 else ""
-                            return rf"\textbf{{{self._escape_latex(first_line)}}}" + (rf" \hfill {self._escape_latex(other)}" if other else "")
-        return r"\textbf{B.S. in Computer Science} \hfill University of California, Berkeley (2019)"
+                        date_pattern = re.compile(r"(\d{4}\s*(?:–|—|-|to)\s*(?:Present|Current|\d{4})|\d{4})")
+                        entries = []
+                        i = 0
+                        while i < len(lines):
+                            line = lines[i]
+                            if "|" in line:
+                                parts = [p.strip() for p in line.split("|")]
+                                degree = parts[0]
+                                dates_school = parts[1]
+                                other = lines[i+1] if (i+1 < len(lines) and "|" not in lines[i+1]) else ""
+                                entries.append(rf"\textbf{{{self._escape_latex(degree)}}} \hfill {self._escape_latex(dates_school)}" + (rf" \\ \textit{{{self._escape_latex(other)}}}" if other else ""))
+                                if other:
+                                    i += 1
+                            else:
+                                degree = line
+                                school = ""
+                                dates = ""
+                                if i + 1 < len(lines):
+                                    if date_pattern.search(lines[i+1]):
+                                        dates = lines[i+1]
+                                        i += 1
+                                    else:
+                                        school = lines[i+1]
+                                        i += 1
+                                        if i + 1 < len(lines) and date_pattern.search(lines[i+1]):
+                                            dates = lines[i+1]
+                                            i += 1
+                                dates_clean = dates.replace("–", "--").replace("—", "--").replace("-", "--")
+                                dates_str = rf"\hfill {self._escape_latex(dates_clean)}" if dates_clean else ""
+                                school_str = rf" \\ \textit{{{self._escape_latex(school)}}}" if school else ""
+                                entries.append(rf"\textbf{{{self._escape_latex(degree)}}} {dates_str}{school_str}")
+                            i += 1
+
+                        # Also append certifications if present
+                        if "Certifications" in doc.sections:
+                            cert_lines = [c.strip().lstrip("-•*▸– ") for c in doc.sections["Certifications"].splitlines() if len(c.strip()) > 3]
+                            if cert_lines:
+                                certs_formatted = " \\textbar\\ ".join([self._escape_latex(c) for c in cert_lines[:3]])
+                                entries.append(rf"\textbf{{Certifications:}} {certs_formatted}")
+
+                        if entries:
+                            return "\n\n".join(entries)
+
+        return r"\textbf{B.S. in Computer Science} \hfill (2019)"
 
     def _escape_latex(self, text: str) -> str:
         s = text

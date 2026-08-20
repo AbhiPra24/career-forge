@@ -5,7 +5,7 @@ Parser for PDF (.pdf) resume documents
 from pathlib import Path
 from typing import Dict, Any, List
 
-from career_forge.parsers.base import BaseParser, ParsedDocument
+from career_forge.parsers.base import BaseParser, ParsedDocument, segment_text_sections
 from career_forge.core.exceptions import ParserError
 
 
@@ -31,12 +31,14 @@ class PdfParser(BaseParser):
                     pages_text.append(text)
             
             full_text = "\n\n".join(pages_text).strip()
+            sections = segment_text_sections(full_text)
             return ParsedDocument(
                 raw_text=full_text,
                 clean_text=full_text,
                 file_type="pdf",
                 file_path=str(path),
-                metadata={"page_count": len(reader.pages)}
+                metadata={"page_count": len(reader.pages)},
+                sections=sections
             )
         except ImportError:
             # Fallback if pypdf is not installed
