@@ -73,3 +73,7 @@ dist_resumes/
 dist_test/
 *.pdf
 !tests/fixtures/**/*.pdf
+
+# Personal Resumes & LaTeX sources
+resume/
+

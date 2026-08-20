@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, Any, List
 
-from career_forge.parsers.base import BaseParser, ParsedDocument
+from career_forge.parsers.base import BaseParser, ParsedDocument, segment_text_sections
 from career_forge.core.exceptions import ParserError
 
 W_NAMESPACE = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -67,13 +67,15 @@ class DocxParser(BaseParser):
                     ordered_chunks.append(table_text)
 
         full_text = "\n\n".join(ordered_chunks).strip()
+        sections = segment_text_sections(full_text)
 
         return ParsedDocument(
             raw_text=full_text,
             clean_text=full_text,
             file_type="docx",
             file_path=file_path,
-            tables=tables_extracted
+            tables=tables_extracted,
+            sections=sections
         )
 
     def _extract_paragraph_text(self, p_node: ET.Element) -> str:
