@@ -6,6 +6,7 @@
 [![Python: 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](pyproject.toml)
 [![Architecture: MCP Ready](https://img.shields.io/badge/MCP-Ready-purple.svg)](src/career_forge/mcp_server.py)
 [![Privacy: Zero-PII Guarantee](https://img.shields.io/badge/Privacy-100%25%20Zero--PII-success.svg)](#privacy--zero-pii-guarantee)
+[![LinkedIn: Read Article](https://img.shields.io/badge/LinkedIn-Technical%20Article-0A66C2.svg?logo=linkedin)](https://www.linkedin.com/pulse/building-careerforge-how-we-engineered-150-token-career-prakash-cdirf/)
 
 ---
 
