@@ -298,16 +298,36 @@ class ResumeArchitectEngine:
         if doc.sections:
             for k, v in doc.sections.items():
                 if any(w in k.lower() for w in ["skill", "stack", "technologies", "frameworks", "competencies"]):
-                    lines = [line.strip().lstrip("-•*▸– ") for line in v.splitlines() if line.strip()]
+                    lines = [line.strip() for line in v.splitlines() if line.strip()]
                     formatted = []
+                    current_category = ""
+                    current_items: List[str] = []
+
                     for line in lines:
-                        if ":" in line:
-                            category, items = line.split(":", 1)
+                        clean_line = line.lstrip("-•*▸– ").strip()
+                        if ":" in clean_line:
+                            if current_category and current_items:
+                                formatted.append(rf"\textbf{{{self._escape_latex(current_category)}:}} {self._escape_latex(', '.join(current_items))} \\")
+                                current_items = []
+                            category, items = clean_line.split(":", 1)
                             category_clean = category.strip().replace("*", "").replace("#", "")
                             items_clean = items.strip().replace("*", "").replace("#", "")
                             formatted.append(rf"\textbf{{{self._escape_latex(category_clean)}:}} {self._escape_latex(items_clean)} \\")
-                        elif len(line) > 3:
-                            formatted.append(rf"{self._escape_latex(line)} \\")
+                            current_category = ""
+                        elif clean_line.isupper() and 3 <= len(clean_line) < 35:
+                            if current_category and current_items:
+                                formatted.append(rf"\textbf{{{self._escape_latex(current_category)}:}} {self._escape_latex(', '.join(current_items))} \\")
+                            current_category = clean_line.title()
+                            current_items = []
+                        elif current_category:
+                            tokens = [t.strip() for t in re.split(r"[,·|]", clean_line) if t.strip()]
+                            current_items.extend(tokens if len(tokens) > 1 else [clean_line])
+                        elif len(clean_line) > 3:
+                            formatted.append(rf"{self._escape_latex(clean_line)} \\")
+
+                    if current_category and current_items:
+                        formatted.append(rf"\textbf{{{self._escape_latex(current_category)}:}} {self._escape_latex(', '.join(current_items))} \\")
+
                     if formatted:
                         return "\n".join(formatted).rstrip(r" \\")
         return (
@@ -315,6 +335,47 @@ class ResumeArchitectEngine:
             r"\textbf{Frameworks \& Tools:} pytest, Selenium, Postman, Allure, REST APIs \\" + "\n" +
             r"\textbf{CI/CD \& Protocols:} Jenkins, Docker, Git, Linux, OCPP"
         )
+
+    def _coalesce_bullets(self, raw_lines: List[str]) -> List[str]:
+        bullets: List[str] = []
+        current_b: List[str] = []
+        bullet_marker = re.compile(r"^[–—•*▸\-]\s*")
+
+        for l in raw_lines:
+            s = l.strip()
+            if not s:
+                continue
+            if s in ["▸", "•", "-", "*", "–", "—"]:
+                if current_b:
+                    bullets.append(" ".join(current_b))
+                    current_b = []
+                continue
+
+            has_marker = bool(bullet_marker.match(s))
+            s_clean = bullet_marker.sub("", s).strip()
+
+            if has_marker:
+                if current_b:
+                    bullets.append(" ".join(current_b))
+                current_b = [s_clean]
+            elif not current_b:
+                current_b = [s_clean]
+            else:
+                prev_ended = current_b[-1].endswith((".", ";", ":"))
+                starts_continuation = (
+                    s_clean[0].islower()
+                    or any(s_clean.lower().startswith(w + " ") for w in ["using", "and", "with", "across", "for", "to", "in", "on", "from", "of", "by", "caught", "directly", "ensuring", "contributing", "reducing", "patterns", "station", "analysis", "workflows", "sign-off"])
+                )
+                if not prev_ended or starts_continuation:
+                    current_b.append(s_clean)
+                else:
+                    bullets.append(" ".join(current_b))
+                    current_b = [s_clean]
+
+        if current_b:
+            bullets.append(" ".join(current_b))
+
+        return [b for b in bullets if len(b) > 10]
 
     def _extract_experience_latex(self, doc: ParsedDocument) -> str:
         raw = doc.raw_text or doc.clean_text
@@ -361,11 +422,8 @@ class ResumeArchitectEngine:
                         dates = date_loc.replace("–", "--").replace("—", "--").replace("-", "--")
                     bullet_start = 2
 
-                bullets = []
-                for bline in lines[bullet_start:]:
-                    if bline.startswith("-") or bline.startswith("•") or bline.startswith("*") or bline.startswith("▸") or bline.startswith("–"):
-                        item_text = bline.lstrip("-•*▸– ").strip()
-                        bullets.append(rf"\item {self._escape_latex(item_text)}")
+                raw_job_bullets = lines[bullet_start:]
+                bullets = self._coalesce_bullets(raw_job_bullets)
 
                 if bullets:
                     loc_str = rf"\hfill {self._escape_latex(location)}" if location else ""
@@ -373,7 +431,7 @@ class ResumeArchitectEngine:
 \textbf{{{self._escape_latex(role)}}} \hfill {self._escape_latex(dates)} \\
 \textit{{{self._escape_latex(company)}}} {loc_str}
 \begin{{itemize}}
-""" + "\n".join(bullets) + "\n\\end{itemize}")
+""" + "\n".join([rf"\item {self._escape_latex(b)}" for b in bullets]) + "\n\\end{itemize}")
 
             if formatted_jobs:
                 return "\n\n".join(formatted_jobs)
@@ -401,46 +459,48 @@ class ResumeArchitectEngine:
         i = 0
         while i < len(lines):
             line = lines[i]
-            is_bullet = bool(re.match(r"^[–—•*▸\-]\s*", line))
-            cleaned_line = re.sub(r"^[–—•*▸\-]\s*", "", line).strip()
+            is_bullet = bool(re.match(r"^[–—•*▸\-]\s*", line)) or line in ["▸", "•", "-", "*", "–", "—"]
 
             date_match = date_regex.search(line)
             if date_match and not is_bullet:
-                dates = date_match.group(1).replace("–", "--").replace("—", "--").replace("-", "--")
-                role = line[:date_match.start()].strip(" |–—·-")
-                if not role:
-                    role = "Software Engineer"
-                company = ""
-                location = ""
+                candidate_role = line[:date_match.start()].strip(" |–—·-")
+                is_edu = any(kw in candidate_role.lower() for kw in ["mba", "b.tech", "b.s.", "bachelor", "master", "diploma", "phd", "degree"])
+                if not is_edu:
+                    dates = date_match.group(1).replace("–", "--").replace("—", "--").replace("-", "--")
+                    role = candidate_role or "Software Engineer"
+                    company = ""
+                    location = ""
 
-                # Look ahead for company and location lines
-                if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
-                    next_l = lines[i+1].strip()
+                    # Look ahead for company and location lines
+                    if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
+                        next_l = lines[i+1].strip()
+                        i += 1
+                        if "·" in next_l or "|" in next_l:
+                            parts = re.split(r"[·|]", next_l)
+                            company = parts[0].strip()
+                            location = " · ".join([p.strip() for p in parts[1:]])
+                        else:
+                            company = next_l
+                            if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
+                                loc_candidate = lines[i+1].strip()
+                                if any(kw in loc_candidate.lower() for kw in ["remote", "hybrid", "on-site", "india", "ca", "ny", "tx", "wa", "uk", "usa", "germany"]):
+                                    location = loc_candidate
+                                    i += 1
+
+                    if current_job:
+                        jobs.append(current_job)
+                    current_job = {
+                        "role": role,
+                        "company": company or "Technology Organization",
+                        "dates": dates,
+                        "location": location,
+                        "raw_lines": []
+                    }
                     i += 1
-                    if "·" in next_l or "|" in next_l:
-                        parts = re.split(r"[·|]", next_l)
-                        company = parts[0].strip()
-                        location = " · ".join([p.strip() for p in parts[1:]])
-                    else:
-                        company = next_l
-                        if i + 1 < len(lines) and not re.match(r"^[–—•*▸\-]\s*", lines[i+1]) and not date_regex.search(lines[i+1]):
-                            loc_candidate = lines[i+1].strip()
-                            if any(kw in loc_candidate.lower() for kw in ["remote", "hybrid", "on-site", "india", "ca", "ny", "tx", "wa", "uk", "usa", "germany"]):
-                                location = loc_candidate
-                                i += 1
+                    continue
 
-                if current_job:
-                    jobs.append(current_job)
-                current_job = {
-                    "role": role,
-                    "company": company or "Technology Company",
-                    "dates": dates,
-                    "location": location,
-                    "bullets": []
-                }
-            elif current_job is not None:
-                if is_bullet or len(line) > 20:
-                    current_job["bullets"].append(cleaned_line)
+            if current_job is not None:
+                current_job["raw_lines"].append(line)
             i += 1
 
         if current_job:
@@ -449,10 +509,10 @@ class ResumeArchitectEngine:
         if jobs:
             formatted = []
             for j in jobs:
-                bullets_list = [rf"\item {self._escape_latex(b)}" for b in j["bullets"] if len(b) > 10]
-                if not bullets_list:
-                    bullets_list = [r"\item Led test strategy, automated verification, and production release sign-offs."]
-                b_str = "\n".join(bullets_list)
+                bullets = self._coalesce_bullets(j["raw_lines"])
+                if not bullets:
+                    bullets = ["Led test strategy, automated verification, and production release sign-offs."]
+                b_str = "\n".join([rf"\item {self._escape_latex(b)}" for b in bullets])
                 loc_str = rf"\hfill {self._escape_latex(j['location'])}" if j['location'] else ""
                 formatted.append(
                     rf"\textbf{{{self._escape_latex(j['role'])}}} \hfill {self._escape_latex(j['dates'])} \\" + "\n" +

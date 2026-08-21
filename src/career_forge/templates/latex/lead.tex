@@ -1,46 +1,50 @@
 \documentclass[10pt,letterpaper]{article}
 \usepackage[utf8]{inputenc}
-\usepackage{geometry}
+\usepackage[margin=0.45in,top=0.38in,bottom=0.38in]{geometry}
 \usepackage{enumitem}
 \usepackage{hyperref}
+\usepackage{xcolor}
 
-\geometry{left=0.6in, right=0.6in, top=0.5in, bottom=0.5in}
+\definecolor{primary}{RGB}{0, 70, 140}
+\definecolor{darkgray}{RGB}{40, 40, 40}
+
+\hypersetup{
+    colorlinks=true,
+    urlcolor=primary,
+    linkcolor=primary
+}
+
 \pagestyle{empty}
-\setlist[itemize]{leftmargin=1.2em, itemsep=2pt, topsep=2pt, parsep=0pt}
-\hypersetup{colorlinks=true, urlcolor=blue}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlist[itemize]{leftmargin=1.1em, itemsep=1.2pt, topsep=1pt, parsep=0pt}
 
 \begin{document}
 
 \begin{center}
-    {\LARGE \textbf{__NAME__}} \\
-    \vspace{2pt}
-    \textbf{__TITLE__} \\
-    __LOCATION__ \textbar\ __EMAIL__ \textbar\ __LINKEDIN__
+    {\LARGE \textbf{\color{darkgray} __NAME__}} \\ \vspace{2pt}
+    {\large \textbf{__TITLE__}} \\ \vspace{2pt}
+    \small __LOCATION__ \ \textbar\ \ __EMAIL__ \ \textbar\ \ __LINKEDIN__
 \end{center}
 
-\vspace{-6pt}
-\section*{EXECUTIVE LEADERSHIP \& ARCHITECTURE SUMMARY}
 \vspace{-4pt}
-\hrule
-\vspace{4pt}
+\section*{\large\bfseries\color{primary}\uppercase{Executive Summary \& Leadership Profile}}
+\vspace{-4pt}\rule{\textwidth}{0.8pt}\vspace{3pt}
 __SUMMARY__
 
-\section*{STRATEGIC \& TECHNICAL MASTERY}
-\vspace{-4pt}
-\hrule
-\vspace{4pt}
+\section*{\large\bfseries\color{primary}\uppercase{Core Competencies \& Technical Mastery}}
+\vspace{-4pt}\rule{\textwidth}{0.8pt}\vspace{3pt}
+\small
 __SKILLS__
 
-\section*{LEADERSHIP \& ENGINEERING IMPACT}
-\vspace{-4pt}
-\hrule
-\vspace{4pt}
+\section*{\large\bfseries\color{primary}\uppercase{Professional Experience}}
+\vspace{-4pt}\rule{\textwidth}{0.8pt}\vspace{3pt}
+\small
 __EXPERIENCE__
 
-\section*{EDUCATION}
-\vspace{-4pt}
-\hrule
-\vspace{4pt}
+\section*{\large\bfseries\color{primary}\uppercase{Education \& Certifications}}
+\vspace{-4pt}\rule{\textwidth}{0.8pt}\vspace{3pt}
+\small
 __EDUCATION__
 
 \end{document}
