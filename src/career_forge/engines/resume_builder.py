@@ -13,15 +13,22 @@ from career_forge.parsers.base import ParsedDocument
 from career_forge.core.exceptions import ParserError
 
 STRONG_ACTION_VERBS = {
+    # Engineering, Architecture & Code
     "architected", "engineered", "designed", "implemented", "developed", "built",
     "scaled", "spearheaded", "orchestrated", "deployed", "refactored", "migrated",
     "constructed", "authored", "automated", "optimized", "standardized", "configured",
+    # Leadership, Strategy & Direction
     "led", "directed", "mentored", "drove", "championed", "supervised", "established",
     "instituted", "guided", "coordinated", "delivered", "owned", "steered", "served",
+    "mobilized", "empowered", "aligned", "advocated",
+    # Quality, Testing & Verification
     "validated", "audited", "verified", "isolated", "targeted", "benchmarked",
     "monitored", "uncovered", "prevented", "diagnosed", "eliminated", "transformed",
+    # Business, Finance, Product & Growth
     "accelerated", "boosted", "maximized", "curtailed", "cut", "reduced", "expanded",
-    "generated", "streamlined", "integrated", "negotiated", "achieved"
+    "generated", "streamlined", "integrated", "negotiated", "achieved", "launched",
+    "prioritized", "modeled", "underwrote", "structured", "valued", "closed",
+    "recruited", "sourced", "retained", "onboarded", "captured", "outperformed"
 }
 
 WEAK_PASSIVE_PHRASES = [
@@ -79,7 +86,7 @@ class ResumeArchitectEngine:
 
         # 2. Metric Density & Google XYZ (25 pts)
         metric_regex = re.compile(
-            r"(\d+[\d,.]*\s*(?:%|rps|req/s|ms|x|k|m|million|billion|traders|regressions|endpoints|microservices?|services?|squads?|teams?|engineers?|users?|queries|daily|monthly|annually|days?|weeks?|months?|hours?|years?)|\$\d+[\d,.]*|\d+[\d,.]*\+|\d+\+\s*[\w]+|from\s+\d+[\w\s]+\s+to\s+\d+[\w\s]+)",
+            r"(\d+[\d,.]*\s*(?:%|rps|qps|req/s|ms|x|k|m|b|million|billion|traders|regressions|endpoints|microservices?|services?|squads?|teams?|engineers?|users?|queries|daily|monthly|annually|arr|mrr|gmv|ebitda|dau|mau|cac|ltv|bps|days?|weeks?|months?|hours?|years?)|\$\d+[\d,.]*|\d+[\d,.]*\+|\d+\+\s*[\w]+|from\s+\d+[\w\s]+\s+to\s+\d+[\w\s]+)",
             re.IGNORECASE
         )
         raw_bullets = [line.strip().lstrip("-•* ") for line in text.splitlines() if len(line.strip()) > 20 and (line.strip().startswith("-") or line.strip().startswith("•") or line.strip().startswith("*"))]
@@ -107,9 +114,9 @@ class ResumeArchitectEngine:
             
             suggestion = ""
             if not has_metric:
-                suggestion = "Enhance with Google XYZ: add quantifiable metric (e.g. % improvement, latency reduction, volume)."
+                suggestion = "Enhance with Google XYZ: add quantifiable metric (e.g. % improvement, latency reduction, volume, revenue/cost impact)."
             elif not has_verb:
-                suggestion = "Lead with a strong action verb (e.g. Architected, Engineered, Spearheaded)."
+                suggestion = "Lead with a strong action verb (e.g. Architected, Engineered, Spearheaded, Launched)."
             else:
                 suggestion = "Optimal Google XYZ quantification."
 
@@ -132,10 +139,10 @@ class ResumeArchitectEngine:
 
         # 3. Structure & Sections (25 pts)
         section_aliases = {
-            "Experience": ["experience", "employment", "work history", "career history", "projects"],
-            "Education": ["education", "academic", "university", "degree", "certifications"],
-            "Skills": ["skills", "skill", "technologies", "tech stack", "competencies", "tools"],
-            "Summary": ["summary", "profile", "objective", "about", "overview", "executive summary"]
+            "Experience": ["experience", "employment", "work history", "career history", "projects", "consulting experience", "leadership experience"],
+            "Education": ["education", "academic", "university", "degree", "certifications", "academic background"],
+            "Skills": ["skills", "skill", "technologies", "tech stack", "competencies", "tools", "core competencies", "specialization"],
+            "Summary": ["summary", "profile", "objective", "about", "overview", "executive summary", "vision"]
         }
         missing_secs = []
         for canonical_name, aliases in section_aliases.items():
@@ -160,7 +167,7 @@ class ResumeArchitectEngine:
         if passive_found:
             recommendations.append(f"Eliminate passive phrases: {', '.join(passive_found[:3])}")
         if quant_ratio < 0.50:
-            recommendations.append("Apply Google XYZ formula: increase percentage of metrics (numbers, %, $)")
+            recommendations.append("Apply Google XYZ formula: increase percentage of metrics (numbers, %, $, QPS, latency, growth)")
         if missing_secs:
             recommendations.append(f"Add missing standard sections: {', '.join(missing_secs)}")
         if word_count < 300:
@@ -250,7 +257,7 @@ class ResumeArchitectEngine:
                 continue
             if idx + 1 < len(lines):
                 next_l = lines[idx + 1]
-                if ("@" in next_l or any(w in next_l.lower() for w in ["sde", "engineer", "developer", "architect", "lead", "manager", "specialist", "consultant"])) and len(next_l.split()) >= 2:
+                if ("@" in next_l or any(w in next_l.lower() for w in ["sde", "engineer", "developer", "architect", "lead", "manager", "specialist", "consultant", "director", "partner", "analyst"])) and len(next_l.split()) >= 2:
                     words = line.split()
                     if 2 <= len(words) <= 4 and all(w.replace(".", "").replace("-", "").isalpha() for w in words):
                         if line.lower() not in skip_headers:
@@ -277,9 +284,14 @@ class ResumeArchitectEngine:
             "fullstack": "Senior Full Stack Platform Engineer",
             "devops": "Staff DevOps & Cloud Infrastructure Engineer",
             "platform": "Staff Platform & Infrastructure Engineer",
-            "data": "Senior Data & Distributed Systems Engineer"
+            "data": "Senior Data & Distributed Systems Engineer",
+            "pm": "Principal Product Manager",
+            "consulting": "Management Consultant & Strategy Advisor",
+            "finance": "Investment Banking & Financial Strategy Associate",
+            "growth": "Enterprise Sales & Growth Director",
+            "talent": "Head of Talent Acquisition & People Operations"
         }
-        return role_map.get(default_role.lower(), "Senior Software Engineer")
+        return role_map.get(default_role.lower(), "Senior Professional")
 
     def _extract_email(self, doc: ParsedDocument) -> str:
         match = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", doc.clean_text)

@@ -293,7 +293,7 @@ def main():
     # Resume Build
     p_build = resume_subs.add_parser("build", help="Build role-tailored LaTeX and compile to PDF")
     p_build.add_argument("--resume", "-r", required=True, help="Path to resume file")
-    p_build.add_argument("--role", default="swe", choices=["swe", "sdet", "aiml", "lead", "fullstack", "devops", "platform", "data"], help="Role template archetype")
+    p_build.add_argument("--role", default="swe", choices=["swe", "sdet", "aiml", "lead", "fullstack", "devops", "platform", "data", "pm", "consulting", "finance", "growth", "talent"], help="Role template archetype")
     p_build.add_argument("--compile", "-c", action="store_true", help="Compile .tex to .pdf via Tectonic/LaTeX")
     p_build.add_argument("--output", "-o", default=None, help="Output directory")
 
