@@ -84,17 +84,35 @@ class ProfileDigestEngine:
         if doc.metadata and "name" in doc.metadata:
             return doc.metadata["name"]
         
-        lines = [line.strip() for line in doc.clean_text.splitlines() if line.strip()]
+        lines = [line.strip().replace("#", "").replace("\\", "").strip() for line in doc.clean_text.splitlines() if line.strip()]
         if not lines:
             return "Candidate Name"
         
-        first_line = lines[0].replace("#", "").replace("\\", "").strip()
-        # Title case name extraction
-        words = first_line.split()
-        if 1 <= len(words) <= 4 and all(w.replace(".", "").isalpha() for w in words):
-            return first_line.title()
+        skip_headers = {
+            "contact", "contact information", "profile", "resume", "cv", "curriculum vitae",
+            "top skills", "certifications", "honors-awards", "page 1 of 2", "page 2 of 2"
+        }
 
-        # Fallback to first line
+        # Check if this looks like a LinkedIn export where candidate name precedes headline / '@' / 'Summary'
+        for idx, line in enumerate(lines[:35]):
+            if line.lower() in skip_headers or "@" in line or "http" in line.lower() or "linkedin.com" in line.lower():
+                continue
+            if idx + 1 < len(lines):
+                next_l = lines[idx + 1]
+                if ("@" in next_l or any(w in next_l.lower() for w in ["sde", "engineer", "developer", "architect", "lead", "manager", "specialist", "consultant"])) and len(next_l.split()) >= 2:
+                    words = line.split()
+                    if 2 <= len(words) <= 4 and all(w.replace(".", "").replace("-", "").isalpha() for w in words):
+                        if line.lower() not in skip_headers:
+                            return line.title()
+
+        for line in lines:
+            if line.lower() in skip_headers or "@" in line or "http" in line.lower() or "linkedin.com" in line.lower():
+                continue
+            words = line.split()
+            if 1 <= len(words) <= 4 and all(w.replace(".", "").isalpha() for w in words):
+                return line.title()
+
+        first_line = lines[0]
         return first_line[:40].title()
 
     def _extract_stack(self, text: str) -> List[str]:
