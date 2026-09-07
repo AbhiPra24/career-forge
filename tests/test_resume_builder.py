@@ -47,6 +47,21 @@ class TestResumeBuilder(unittest.TestCase):
         self.assertIn("Nexus Cloud Systems", tex_code)
         self.assertIn(r"\begin{itemize}", tex_code)
 
+    def test_multi_role_and_non_tech_latex_generation(self):
+        doc = parse_resume_file(FIXTURES_DIR / "alex_rivera_backend.md")
+        
+        for role, keyword in [
+            ("pm", "PRODUCT VISION"),
+            ("consulting", "STRATEGIC COMPETENCIES"),
+            ("finance", "FINANCIAL PROFILE"),
+            ("growth", "GO-TO-MARKET"),
+            ("talent", "TALENT ACQUISITION")
+        ]:
+            tex = self.engine.generate_latex(doc, role_template=role)
+            self.assertIn(r"\documentclass", tex)
+            self.assertIn("Alex Rivera", tex)
+            self.assertIn(keyword, tex.upper())
+
     def test_bidirectional_conversion(self):
         doc = parse_resume_file(FIXTURES_DIR / "morgan_chen_aiml.tex")
         md_text = self.engine.convert_format(doc, target_format="md")

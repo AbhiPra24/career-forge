@@ -32,11 +32,11 @@ def segment_text_sections(text: str) -> Dict[str, str]:
 
     known_headers = [
         "professional summary", "summary", "profile", "objective", "about", "overview",
-        "technical skills", "skills", "core competencies", "skills & tools", "skills and tools",
+        "technical skills", "skills", "top skills", "core competencies", "skills & tools", "skills and tools",
         "professional experience", "experience", "work experience", "employment history", "career history",
         "education", "academic background", "education & certifications", "academic history",
         "certifications", "licenses & certifications", "licenses and certifications", "projects",
-        "awards", "honors", "publications"
+        "awards", "honors", "honors-awards", "honors & awards", "honors and awards", "publications"
     ]
 
     for line in lines:
